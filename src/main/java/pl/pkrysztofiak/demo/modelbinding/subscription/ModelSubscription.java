@@ -13,14 +13,14 @@ public class ModelSubscription<T> {
 
     private final Subject<Optional<Void>> disposeRequest = PublishSubject.create();
     
-    public ModelSubscription(Observable<Boolean> viewActiveObservale, Observable<T> viewObservable, Consumer<T> viewEmissionConsumer, Observable<T> modelObservable, Consumer<T> modelEmissionConsumer) {
-        viewActiveObservale
+    public ModelSubscription(Observable<Boolean> viewEmittingObservale, Observable<T> viewObservable, Consumer<T> viewEmissionConsumer, Observable<T> modelObservable, Consumer<T> modelEmissionConsumer) {
+        viewEmittingObservale
         .delay(0, TimeUnit.SECONDS, Schedulers.single())
-        .switchMap(active -> active ? Observable.empty() : modelObservable.takeUntil(viewActiveObservale.filter(Boolean.TRUE::equals)))
+        .switchMap(emitting -> emitting ? Observable.empty() : modelObservable.takeUntil(viewEmittingObservale.filter(Boolean.TRUE::equals)))
         .takeUntil(disposeRequest)
         .subscribe(modelEmissionConsumer::accept);
         
-        viewActiveObservale.switchMap(active -> active ? viewObservable.skip(1) : Observable.empty())
+        viewEmittingObservale.switchMap(emitting -> emitting ? viewObservable.skip(1) : Observable.empty())
         .delay(0, TimeUnit.SECONDS, Schedulers.single())
         .takeUntil(disposeRequest)
         .subscribe(viewEmissionConsumer::accept);
